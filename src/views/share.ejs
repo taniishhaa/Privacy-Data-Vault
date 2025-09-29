@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 25px 20px;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .field-selector {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .field-group {
+            margin-bottom: 20px;
+        }
+        .field-group-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .form-check {
+            margin-bottom: 8px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .form-check:hover {
+            background-color: #e9ecef;
+        }
+        .form-check-input:checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+        .disclosure-preview {
+            background: #fff;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .selected-field {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.875rem;
+            margin: 3px;
+        }
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            color: white;
+            font-weight: bold;
+            position: relative;
+        }
+        .step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .step.completed {
+            background: #28a745;
+        }
+        .step.pending {
+            background: #6c757d;
+        }
+        .step:not(:last-child):after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            width: 20px;
+            height: 2px;
+            background: #dee2e6;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .qr-code {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="bi bi-shield-lock-fill"></i> Privacy-First Data Vault
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a class="nav-link" href="#" id="logoutBtn">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2><i class="bi bi-share"></i> Share Your Data Selectively</h2>
+                <p class="text-muted">Create cryptographically signed disclosures with only the data you choose to share</p>
+            </div>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">1</div>
+            <div class="step pending" id="step2">2</div>
+            <div class="step pending" id="step3">3</div>
+            <div class="step pending" id="step4">4</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- Step 1: Unlock Vault -->
+                        <div id="stepUnlock" class="step-content">
+                            <h5><i class="bi bi-unlock"></i> Step 1: Unlock Your Vault</h5>
+                            <p class="text-muted">Enter your password to decrypt and access your vault data</p>
+                            
+                            <form id="unlockForm">
+                                <div class="mb-3">
+                                    <label for="vaultPassword" class="form-label">Vault Password</label>
+                                    <input type="password" class="form-control" id="vaultPassword" required 
+                                           placeholder="Enter your vault password">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-unlock"></i> Unlock Vault
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Step 2: Select Fields -->
+                        <div id="stepSelect" class="step-content" style="display: none;">
+                            <h5><i class="bi bi-check2-square"></i> Step 2: Select Fields to Share</h5>
+                            <p class="text-muted">Choose which personal attributes you want to include in your disclosure</p>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="field-selector" id="fieldSelector">
+                                        <!-- Fields will be loaded here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Selection Summary</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-2">
+                                                <strong id="selectedCount">0</strong> fields selected
+                                            </p>
+                                            <div class="progress mb-3">
+                                                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                            </div>
+                                            <button class="btn btn-outline-secondary btn-sm" id="selectAllBtn">
+                                                <i class="bi bi-check-all"></i> Select All
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" id="clearAllBtn">
+                                                <i class="bi bi-x-circle"></i> Clear All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-secondary" id="backToUnlock">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-primary" id="nextToDetails">
+                                    <i class="bi bi-arrow-right"></i> Next: Add Details
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Disclosure Details -->
+                        <div id="stepDetails" class="step-content" style="display: none;">
+                            <h5><i class="bi bi-info-circle"></i> Step 3: Disclosure Details</h5>
+                            <p class="text-muted">Provide context and specify how your data will be used</p>
+                            
+                            <form id="detailsForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="purpose" class="form-label">Purpose *</label>
+                                        <select class="form-select" id="purpose" required>
+                                            <option value="">Select purpose...</option>
+                                            <option value="identity-verification">Identity Verification</option>
+                                            <option value="background-check">Background Check</option>
+                                            <option value="financial-application">Financial Application</option>
+                                            <option value="healthcare">Healthcare Services</option>
+                                            <option value="employment">Employment Verification</option>
+                                            <option value="legal-compliance">Legal Compliance</option>
+                                            <option value="insurance">Insurance Application</option>
+                                            <option value="education">Education Verification</option>
+                                            <option value="government">Government Services</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="requestedBy" class="form-label">Requested By</label>
+                                        <input type="text" class="form-control" id="requestedBy" 
+                                               placeholder="Organization or person name">
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="expiresIn" class="form-label">Expires In (Days)</label>
+                                        <select class="form-select" id="expiresIn">
+                                            <option value="">Never expires</option>
+                                            <option value="1">1 Day</option>
+                                            <option value="7">1 Week</option>
+                                            <option value="30">1 Month</option>
+                                            <option value="90">3 Months</option>
+                                            <option value="365">1 Year</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="recipientEmail" class="form-label">Recipient Email (Optional)</label>
+                                        <input type="email" class="form-control" id="recipientEmail" 
+                                               placeholder="recipient@example.com">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="additionalNotes" class="form-label">Additional Notes</label>
+                                    <textarea class="form-control" id="additionalNotes" rows="3" 
+                                              placeholder="Any additional context or instructions..."></textarea>
+                                </div>
+                            </form>
+                            
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-secondary" id="backToSelect">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-primary" id="nextToReview">
+                                    <i class="bi bi-arrow-right"></i> Next: Review
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Review & Create -->
+                        <div id="stepReview" class="step-content" style="display: none;">
+                            <h5><i class="bi bi-eye"></i> Step 4: Review & Create Disclosure</h5>
+                            <p class="text-muted">Review your selection and create the cryptographically signed disclosure</p>
+                            
+                            <div class="disclosure-preview">
+                                <h6>Disclosure Preview</h6>
+                                <div id="reviewContent">
+                                    <!-- Review content will be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="confirmShare" required>
+                                    <label class="form-check-label" for="confirmShare">
+                                        I confirm that I want to share the selected data and understand that this disclosure will be cryptographically signed.
+                                    </label>
+                                </div>
+                                
+                                <button type="button" class="btn btn-secondary" id="backToDetails">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-success" id="createDisclosure">
+                                    <i class="bi bi-shield-check"></i> Create Disclosure
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Success -->
+                        <div id="stepSuccess" class="step-content" style="display: none;">
+                            <div class="text-center py-4">
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                                <h4 class="mt-3">Disclosure Created Successfully!</h4>
+                                <p class="text-muted">Your selective disclosure has been created and cryptographically signed</p>
+                                
+                                <div class="card mt-4">
+                                    <div class="card-body">
+                                        <h6>Disclosure Details</h6>
+                                        <div id="disclosureDetails">
+                                            <!-- Disclosure details will be shown here -->
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <button class="btn btn-primary me-2" id="copyDisclosureBtn">
+                                                <i class="bi bi-clipboard"></i> Copy Disclosure
+                                            </button>
+                                            <button class="btn btn-outline-primary me-2" id="downloadDisclosureBtn">
+                                                <i class="bi bi-download"></i> Download JSON
+                                            </button>
+                                            <button class="btn btn-outline-secondary" id="shareViaEmailBtn">
+                                                <i class="bi bi-envelope"></i> Share via Email
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- QR Code -->
+                                        <div class="qr-code mt-4" id="qrCodeContainer" style="display: none;">
+                                            <h6>QR Code for Easy Sharing</h6>
+                                            <div id="qrCodeDiv"></div>
+                                            <small class="text-muted">Scan with any QR code reader</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <button class="btn btn-outline-primary me-2" onclick="window.location.href='/dashboard'">
+                                        <i class="bi bi-speedometer2"></i> Back to Dashboard
+                                    </button>
+                                    <button class="btn btn-primary" id="createAnotherBtn">
+                                        <i class="bi bi-plus-circle"></i> Create Another
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Help Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-question-circle"></i> How It Works
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-shield-lock text-primary fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>Zero-Knowledge</h6>
+                                <small class="text-muted">Your data is decrypted locally in your browser. We never see your personal information.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-check-circle text-success fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>Selective Sharing</h6>
+                                <small class="text-muted">Choose exactly which attributes to share. Share only what's necessary.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-signature text-info fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>Digital Signatures</h6>
+                                <small class="text-muted">Each disclosure is cryptographically signed for authenticity and integrity.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-clock-history text-warning fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6>Time-Limited</h6>
+                                <small class="text-muted">Set expiration dates and revoke access anytime you want.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Disclosures -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-clock-history"></i> Recent Disclosures
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentDisclosures">
+                            <p class="text-muted text-center">Loading recent disclosures...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // Global variables
+        let vaultData = null;
+        let selectedFields = [];
+        let currentStep = 1;
+        let disclosureResult = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSharePage();
+            setupEventListeners();
+            loadRecentDisclosures();
+        });
+
+        // Check authentication
+        function initializeSharePage() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Step navigation
+            document.getElementById('unlockForm').addEventListener('submit', handleUnlock);
+            document.getElementById('backToUnlock').addEventListener('click', () => goToStep(1));
+            document.getElementById('nextToDetails').addEventListener('click', () => goToStep(3));
+            document.getElementById('backToSelect').addEventListener('click', () => goToStep(2));
+            document.getElementById('nextToReview').addEventListener('click', () => goToStep(4));
+            document.getElementById('backToDetails').addEventListener('click', () => goToStep(3));
+            document.getElementById('createDisclosure').addEventListener('click', handleCreateDisclosure);
+
+            // Selection helpers
+            document.getElementById('selectAllBtn').addEventListener('click', selectAll);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+
+            // Success actions
+            document.getElementById('copyDisclosureBtn').addEventListener('click', copyDisclosure);
+            document.getElementById('downloadDisclosureBtn').addEventListener('click', downloadDisclosure);
+            document.getElementById('shareViaEmailBtn').addEventListener('click', shareViaEmail);
+            document.getElementById('createAnotherBtn').addEventListener('click', createAnother);
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/login';
+            });
+        }
+
+        // Handle vault unlock
+        async function handleUnlock(e) {
+            e.preventDefault();
+            const password = document.getElementById('vaultPassword').value;
+
+            try {
+                showLoading('Unlocking vault...');
+                const response = await axios.get('/api/vault/view', {
+                    params: { password }
+                });
+
+                vaultData = response.data.data.vault.attributes;
+                hideLoading();
+                showAlert('Vault unlocked successfully!', 'success');
+                displayFields();
+                goToStep(2);
+
+            } catch (error) {
+                hideLoading();
+                showAlert(error.response?.data?.message || 'Failed to unlock vault', 'danger');
+            }
+        }
+
+        // Display available fields
+        function displayFields() {
+            const fieldSelector = document.getElementById('fieldSelector');
+            let html = '';
+
+            Object.entries(vaultData).forEach(([category, attributes]) => {
+                if (Object.keys(attributes).length > 0) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-group-title">${formatCategoryName(category)}</div>
+                    `;
+
+                    Object.entries(attributes).forEach(([field, value]) => {
+                        const fieldKey = `${category}.${field}`;
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input field-checkbox" type="checkbox" 
+                                       value="${fieldKey}" id="${fieldKey}">
+                                <label class="form-check-label" for="${fieldKey}">
+                                    <strong>${formatFieldName(field)}:</strong> ${value}
+                                </label>
+                            </div>
+                        `;
+                    });
+
+                    html += '</div>';
+                }
+            });
+
+            fieldSelector.innerHTML = html;
+
+            // Add event listeners to checkboxes
+            document.querySelectorAll('.field-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelection);
+            });
+        }
+
+        // Update field selection
+        function updateSelection() {
+            selectedFields = Array.from(document.querySelectorAll('.field-checkbox:checked'))
+                                 .map(cb => cb.value);
+
+            document.getElementById('selectedCount').textContent = selectedFields.length;
+            
+            const totalFields = document.querySelectorAll('.field-checkbox').length;
+            const percentage = (selectedFields.length / totalFields) * 100;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+
+            // Enable/disable next button
+            const nextBtn = document.getElementById('nextToDetails');
+            nextBtn.disabled = selectedFields.length === 0;
+        }
+
+        // Select all fields
+        function selectAll() {
+            document.querySelectorAll('.field-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+            updateSelection();
+        }
+
+        // Clear all selections
+        function clearAll() {
+            document.querySelectorAll('.field-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            updateSelection();
+        }
+
+        // Navigate to specific step
+        function goToStep(step) {
+            // Hide all step content
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Update step indicators
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                stepEl.className = 'step';
+                if (i < step) {
+                    stepEl.classList.add('completed');
+                } else if (i === step) {
+                    stepEl.classList.add('active');
+                } else {
+                    stepEl.classList.add('pending');
+                }
+            }
+
+            // Show current step
+            const stepContents = {
+                1: 'stepUnlock',
+                2: 'stepSelect', 
+                3: 'stepDetails',
+                4: 'stepReview'
+            };
+
+            if (stepContents[step]) {
+                document.getElementById(stepContents[step]).style.display = 'block';
+            }
+
+            currentStep = step;
+
+            // Special handling for review step
+            if (step === 4) {
+                showReviewContent();
+            }
+        }
+
+        // Show review content
+        function showReviewContent() {
+            const reviewContent = document.getElementById('reviewContent');
+            const purpose = document.getElementById('purpose').value;
+            const requestedBy = document.getElementById('requestedBy').value;
+            const expiresIn = document.getElementById('expiresIn').value;
+
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Disclosure Information</h6>
+                        <p><strong>Purpose:</strong> ${formatPurpose(purpose)}</p>
+                        <p><strong>Requested By:</strong> ${requestedBy || 'Not specified'}</p>
+                        <p><strong>Expires:</strong> ${expiresIn ? `${expiresIn} days` : 'Never'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Selected Fields (${selectedFields.length})</h6>
+                        <div>
+            `;
+
+            selectedFields.forEach(field => {
+                html += `<span class="selected-field">${formatFieldDisplay(field)}</span>`;
+            });
+
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            reviewContent.innerHTML = html;
+        }
+
+        // Create disclosure
+        async function handleCreateDisclosure() {
+            const purpose = document.getElementById('purpose').value;
+            const requestedBy = document.getElementById('requestedBy').value;
+            const expiresIn = document.getElementById('expiresIn').value;
+            const password = document.getElementById('vaultPassword').value;
+
+            if (!document.getElementById('confirmShare').checked) {
+                showAlert('Please confirm that you want to create this disclosure', 'warning');
+                return;
+            }
+
+            try {
+                showLoading('Creating cryptographically signed disclosure...');
+                
+                const response = await axios.post('/api/vault/share', {
+                    password,
+                    selectedFields,
+                    purpose,
+                    requestedBy,
+                    expiresIn: expiresIn ? parseInt(expiresIn) : null
+                });
+
+                disclosureResult = response.data.data;
+                hideLoading();
+                showAlert('Disclosure created successfully!', 'success');
+                showSuccessStep();
+
+            } catch (error) {
+                hideLoading();
+                showAlert(error.response?.data?.message || 'Failed to create disclosure', 'danger');
+            }
+        }
+
+        // Show success step
+        function showSuccessStep() {
+            // Hide all steps and show success
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById('stepSuccess').style.display = 'block';
+
+            // Update step indicators - all completed
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step${i}`).className = 'step completed';
+            }
+
+            // Show disclosure details
+            const detailsDiv = document.getElementById('disclosureDetails');
+            detailsDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-12">
+                        <p><strong>Disclosure ID:</strong> <code>${disclosureResult.disclosureId}</code></p>
+                        <p><strong>Fields Shared:</strong> ${disclosureResult.disclosedFieldsCount}</p>
+                        <p><strong>Created:</strong> ${new Date().toLocaleString()}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Active</span></p>
+                    </div>
+                </div>
+            `;
+
+            // Generate QR code
+            generateQRCode();
+        }
+
+        // Generate QR code
+        async function generateQRCode() {
+            try {
+                const qrData = JSON.stringify({
+                    type: 'selective-disclosure',
+                    disclosureId: disclosureResult.disclosureId,
+                    verificationUrl: `${window.location.origin}/verify`
+                });
+
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, qrData, {
+                    width: 200,
+                    height: 200
+                });
+
+                document.getElementById('qrCodeDiv').appendChild(canvas);
+                document.getElementById('qrCodeContainer').style.display = 'block';
+            } catch (error) {
+                console.error('Failed to generate QR code:', error);
+            }
+        }
+
+        // Copy disclosure to clipboard
+        async function copyDisclosure() {
+            try {
+                const disclosureText = JSON.stringify(disclosureResult.selectiveDisclosure, null, 2);
+                await navigator.clipboard.writeText(disclosureText);
+                showAlert('Disclosure copied to clipboard!', 'success');
+            } catch (error) {
+                showAlert('Failed to copy disclosure', 'danger');
+            }
+        }
+
+        // Download disclosure as JSON
+        function downloadDisclosure() {
+            const blob = new Blob([JSON.stringify(disclosureResult.selectiveDisclosure, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `disclosure-${disclosureResult.disclosureId}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showAlert('Disclosure downloaded!', 'success');
+        }
+
+        // Share via email
+        function shareViaEmail() {
+            const recipientEmail = document.getElementById('recipientEmail').value;
+            const subject = encodeURIComponent('Selective Data Disclosure');
+            const body = encodeURIComponent(`
+I'm sharing some of my personal data with you through a secure, cryptographically signed disclosure.
+
+Disclosure ID: ${disclosureResult.disclosureId}
+
+You can verify this disclosure at: ${window.location.origin}/verify
+
+The disclosure contains the following information:
+${selectedFields.map(field => `- ${formatFieldDisplay(field)}`).join('\n')}
+
+This disclosure was created on ${new Date().toLocaleString()} and is digitally signed for authenticity.
+            `);
+
+            if (recipientEmail) {
+                window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
+            } else {
+                window.open(`mailto:?subject=${subject}&body=${body}`);
+            }
+        }
+
+        // Create another disclosure
+        function createAnother() {
+            // Reset everything
+            selectedFields = [];
+            vaultData = null;
+            disclosureResult = null;
+            document.getElementById('unlockForm').reset();
+            document.getElementById('detailsForm').reset();
+            document.getElementById('confirmShare').checked = false;
+            
+            goToStep(1);
+        }
+
+        // Load recent disclosures
+        async function loadRecentDisclosures() {
+            try {
+                const response = await axios.get('/api/vault/disclosures?limit=5');
+                const disclosures = response.data.data.disclosures;
+                
+                const container = document.getElementById('recentDisclosures');
+                
+                if (disclosures.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No disclosures yet</p>';
+                    return;
+                }
+
+                let html = '';
+                disclosures.forEach(disclosure => {
+                    html += `
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div>
+                                <small><strong>${disclosure.purpose}</strong></small><br>
+                                <small class="text-muted">${disclosure.disclosedFields.length} fields</small>
+                            </div>
+                            <span class="badge bg-${getStatusColor(disclosure.verificationStatus)}">
+                                ${disclosure.verificationStatus}
+                            </span>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                document.getElementById('recentDisclosures').innerHTML = 
+                    '<p class="text-muted text-center">Failed to load disclosures</p>';
+            }
+        }
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.getElementById('alertContainer').innerHTML = alertHtml;
+            
+            setTimeout(() => {
+                const alert = document.querySelector('.alert');
+                if (alert) {
+                    bootstrap.Alert.getOrCreateInstance(alert).close();
+                }
+            }, 5000);
+        }
+
+        function showLoading(message) {
+            showAlert(`<i class="bi bi-hourglass-split"></i> ${message}`, 'info');
+        }
+
+        function hideLoading() {
+            const alert = document.querySelector('.alert');
+            if (alert) {
+                bootstrap.Alert.getOrCreateInstance(alert).close();
+            }
+        }
+
+        function formatCategoryName(category) {
+            const names = {
+                personalInfo: 'Personal Information',
+                contactInfo: 'Contact Information', 
+                identificationInfo: 'Identification Documents',
+                financialInfo: 'Financial Information',
+                healthInfo: 'Health Information',
+                educationInfo: 'Education Information'
+            };
+            return names[category] || category;
+        }
+
+        function formatFieldName(field) {
+            return field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        }
+
+        function formatFieldDisplay(fieldKey) {
+            const [category, field] = fieldKey.split('.');
+            return `${formatCategoryName(category)} - ${formatFieldName(field)}`;
+        }
+
+        function formatPurpose(purpose) {
+            const purposes = {
+                'identity-verification': 'Identity Verification',
+                'background-check': 'Background Check',
+                'financial-application': 'Financial Application',
+                'healthcare': 'Healthcare Services',
+                'employment': 'Employment Verification',
+                'legal-compliance': 'Legal Compliance',
+                'insurance': 'Insurance Application', 
+                'education': 'Education Verification',
+                'government': 'Government Services',
+                'other': 'Other'
+            };
+            return purposes[purpose] || purpose;
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                pending: 'warning',
+                verified: 'success',
+                expired: 'secondary',
+                revoked: 'danger'
+            };
+            return colors[status] || 'secondary';
+        }
+    </script>
+</body>
+</html>
